@@ -1,5 +1,3 @@
-using Gma.System.MouseKeyHook;
-
 namespace Toolbar
 {
     public partial class ToolbarFrm : Form
@@ -31,8 +29,6 @@ namespace Toolbar
             {
                 listBox.Items.Add(Path.GetFileNameWithoutExtension(shortcut));
             }
-
-            //       this.ClientSize = new System.Drawing.Size(listBox.Width + 4, listBox.Height + 2);
          }
 
 private void LoadShortcuts()

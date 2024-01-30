@@ -20,8 +20,4 @@
     </COMReference>
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="MouseKeyHook" Version="5.7.1" />
-  </ItemGroup>
-
 </Project>

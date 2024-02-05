@@ -1,22 +1,29 @@
+using System.Diagnostics;
+
 namespace Toolbar
 {
     public partial class ToolbarFrm : Form
     {
+        const int DelayForSmoothPreview = 50; // Milliseconds
+
         private List<string> shortcuts = new List<string>();
         private string shortcutFolderPath = ""; // Variable for the shortcut folder path
-     
+        private bool isFormActivated = false; // Flag to track whether the form has been activated
         public ToolbarFrm(string shortcutFolderPath)
         {
             InitializeComponent();
 
             this.shortcutFolderPath = shortcutFolderPath;
             this.Text = Path.GetFileNameWithoutExtension(shortcutFolderPath);
-            this.WindowState = FormWindowState.Minimized;
+            this.WindowState = FormWindowState.Normal;
             this.ShowInTaskbar = true;
             this.FormBorderStyle = FormBorderStyle.None;
 
             this.Activated += ToolbarApp_Click;
             listBox.Click += ListBox_Click;
+            this.Shown += ToolbarFrm_Shown; // Handle the Shown event
+            this.MouseEnter += ToolbarFrm_MouseEnter; // Handle the MouseEnter event
+
             listBox.MouseMove += ListBox_MouseMove; // Handle the MouseMove event
             listBox.BackColor = Color.FromArgb(226, 239, 254); // Set the background color
             listBox.BorderStyle = BorderStyle.Fixed3D; // Set the border style
@@ -29,13 +36,35 @@ namespace Toolbar
             {
                 listBox.Items.Add(Path.GetFileNameWithoutExtension(shortcut));
             }
+            CalculateFormSize();
+            this.Visible = true;
          }
 
-private void LoadShortcuts()
+        private void LoadShortcuts()
         {
             if (Directory.Exists(shortcutFolderPath))
             {
                 shortcuts.AddRange(Directory.GetFiles(shortcutFolderPath));
+            }
+        }
+
+        private async void DelayAndMinimize()
+        {
+            await Task.Delay(DelayForSmoothPreview);
+            this.WindowState = FormWindowState.Minimized;
+            this.Visible = true; // make form visible so taskbar preview will show items before first click from user
+        }
+
+        protected override void OnActivated(EventArgs e)
+        {
+            base.OnActivated(e);
+
+            if (!isFormActivated)
+            {
+                this.Visible = false;       // hide form while drawn for the first time
+                isFormActivated = true;
+                this.WindowState = FormWindowState.Normal; // Optional preview display
+                DelayAndMinimize();
             }
         }
         protected override void OnDeactivate(EventArgs e)
@@ -44,32 +73,18 @@ private void LoadShortcuts()
             this.WindowState = FormWindowState.Minimized;
         }
 
-        private void ToolbarApp_Click(object? sender, EventArgs e)
+        // Method to calculate and set the form size based on ListBox items
+        private void CalculateFormSize()
         {
-            this.Show();
-            this.WindowState = FormWindowState.Normal;
-            this.BringToFront();
-            this.Activate();
-
-            // Calculate the required height based on the number of items in the ListBox
-            int listBoxHeight = listBox.ItemHeight * (listBox.Items.Count+1);
-
-            // Set a margin above the taskbar
+            int listBoxHeight = listBox.ItemHeight * (listBox.Items.Count + 1);
             int marginAboveTaskbar = 40;
-
-            // Calculate the Y position, ensuring it's high enough above the taskbar
             int taskbarY = Cursor.Position.Y - listBoxHeight - marginAboveTaskbar;
-
-            if (taskbarY < 0)
-            {
-                // If the calculated Y position is negative, adjust it to 0
-                taskbarY = 0;
-            }
+            taskbarY = Math.Max(taskbarY, 0);
 
             this.Location = new System.Drawing.Point(Cursor.Position.X, taskbarY);
             // Set the form size based on the ListBox size
             this.listBox.Height = listBoxHeight;
-            
+
             // Calculate the maximum width of items in the ListBox
             int maxItemWidth = 0;
             foreach (var item in listBox.Items)
@@ -81,15 +96,46 @@ private void LoadShortcuts()
                 }
             }
 
-            // Set the ListBox width based on the maximum item width
             listBox.Width = maxItemWidth;
-
-            // Calculate the form size based on the ListBox size
-            this.ClientSize = new System.Drawing.Size(listBox.Width+5, listBoxHeight);
+            this.ClientSize = new System.Drawing.Size(listBox.Width + 5, listBoxHeight);
             listBox.Focus();
+        }
 
+        private void ToolbarFrm_Shown(object? sender, EventArgs e)
+        {
+            // Check if it's the first time the form is shown
+            if (!isFormActivated)
+            {
+                // Calculate and set the form size when it is about to be shown for the first time
+                CalculateFormSize();
 
+                // Update the flag to indicate that the form has been activated
+                isFormActivated = true;
+            }
+        }
 
+        private void ToolbarFrm_MouseEnter(object? sender, EventArgs e)
+        {
+            // Check if the form has been activated, if not, show the preview
+            if (!isFormActivated)
+            {
+                // Calculate and set the form size when the mouse enters for the first time
+                CalculateFormSize();
+
+                // Update the flag to indicate that the form has been activated
+                isFormActivated = true;
+            }
+        }
+
+        private void ToolbarApp_Click(object? sender, EventArgs e)
+        {
+            this.Show();
+            this.WindowState = FormWindowState.Normal;
+            this.BringToFront();
+            this.Activate();
+
+            // Calculate and set the form size based on ListBox items
+            CalculateFormSize();
         }
 
         private void ListBox_Click(object? sender, EventArgs e)

@@ -1,76 +1,97 @@
-using System.Diagnostics;
-
 namespace Toolbar
 {
     public partial class ToolbarFrm : Form
     {
+        #region Constants
+        static readonly Color BackGroundColor = Color.FromArgb(226, 239, 254);
         const int DelayForSmoothPreview = 50; // Milliseconds
+        #endregion
 
+        #region Members
         private List<string> shortcuts = new List<string>();
         private string shortcutFolderPath = ""; // Variable for the shortcut folder path
-        private bool isFormActivated = false; // Flag to track whether the form has been activated
-        public ToolbarFrm(string shortcutFolderPath)
+        private bool hasActivated = false; // Flag to track whether the form has been activated
+        #endregion
+
+        #region Public Methods
+        //Methods
+        public ToolbarFrm(string shortcutPath)
         {
             InitializeComponent();
 
-            this.shortcutFolderPath = shortcutFolderPath;
-            this.Text = Path.GetFileNameWithoutExtension(shortcutFolderPath);
-            this.WindowState = FormWindowState.Normal;
-            this.ShowInTaskbar = true;
-            this.FormBorderStyle = FormBorderStyle.None;
+            shortcutFolderPath = shortcutPath;
+            Text = Path.GetFileNameWithoutExtension(shortcutFolderPath);
+            FormBorderStyle = FormBorderStyle.None;
+            BackColor = BackGroundColor;
 
-            this.Activated += ToolbarApp_Click;
+            Activated += ToolbarApp_Click;
+
             listBox.Click += ListBox_Click;
-            this.Shown += ToolbarFrm_Shown; // Handle the Shown event
-            this.MouseEnter += ToolbarFrm_MouseEnter; // Handle the MouseEnter event
-
             listBox.MouseMove += ListBox_MouseMove; // Handle the MouseMove event
-            listBox.BackColor = Color.FromArgb(226, 239, 254); // Set the background color
+            listBox.BackColor = BackGroundColor; // Set the background color
             listBox.BorderStyle = BorderStyle.Fixed3D; // Set the border style
 
-            this.Controls.Add(listBox);
+            Controls.Add(listBox);
+            LoadList();
+            Visible = true;
+        }
+        #endregion
 
-            this.LoadShortcuts();
+        #region Private methods
+
+        // Load the shortcuts and listbox from the shortcut folder
+        private void LoadList()
+        {
+            LoadShortcuts();
             listBox.Items.Clear();
             foreach (string shortcut in shortcuts)
             {
                 listBox.Items.Add(Path.GetFileNameWithoutExtension(shortcut));
             }
-            CalculateFormSize();
-            this.Visible = true;
-         }
+        }
 
+        // load the listbox with shortcut file names no extension
         private void LoadShortcuts()
         {
+            // empty shortcuts
+            shortcuts.Clear();
+            // load all shortcuts in the target folder
             if (Directory.Exists(shortcutFolderPath))
             {
                 shortcuts.AddRange(Directory.GetFiles(shortcutFolderPath));
             }
         }
 
+        // Once the form is drawn for the first time minimize it nd make it visible
+        // the way the taskbar mouse hover preview will show the shortcuts in the listbox
         private async void DelayAndMinimize()
         {
             await Task.Delay(DelayForSmoothPreview);
-            this.WindowState = FormWindowState.Minimized;
-            this.Visible = true; // make form visible so taskbar preview will show items before first click from user
+            WindowState = FormWindowState.Minimized;
+            Visible = true; // make form visible so taskbar preview will show items before first click from user
         }
 
+        // if the form is being displayed for the first time
+        // make invisble on draw a normal form, start a timer with a small delay allowing time for the form to paint.
+        // this way taskbar previews will show a populated listbox before the app has been clicked on for the first time.
         protected override void OnActivated(EventArgs e)
         {
             base.OnActivated(e);
-
-            if (!isFormActivated)
+            if (!hasActivated)
             {
-                this.Visible = false;       // hide form while drawn for the first time
-                isFormActivated = true;
-                this.WindowState = FormWindowState.Normal; // Optional preview display
+                Visible = false;       // hide form while drawn for the first time
+                hasActivated = true;
+                WindowState = FormWindowState.Normal; // Optional preview display
                 DelayAndMinimize();
             }
         }
+        
+        /// OnDeactive minimse the form to the taskbar
+        /// <param name="e"></param>
         protected override void OnDeactivate(EventArgs e)
         {
             base.OnDeactivate(e);
-            this.WindowState = FormWindowState.Minimized;
+            WindowState = FormWindowState.Minimized;
         }
 
         // Method to calculate and set the form size based on ListBox items
@@ -81,9 +102,9 @@ namespace Toolbar
             int taskbarY = Cursor.Position.Y - listBoxHeight - marginAboveTaskbar;
             taskbarY = Math.Max(taskbarY, 0);
 
-            this.Location = new System.Drawing.Point(Cursor.Position.X, taskbarY);
+            Location = new System.Drawing.Point(Cursor.Position.X, taskbarY);
             // Set the form size based on the ListBox size
-            this.listBox.Height = listBoxHeight;
+            listBox.Height = listBoxHeight;
 
             // Calculate the maximum width of items in the ListBox
             int maxItemWidth = 0;
@@ -97,47 +118,18 @@ namespace Toolbar
             }
 
             listBox.Width = maxItemWidth;
-            this.ClientSize = new System.Drawing.Size(listBox.Width + 5, listBoxHeight);
+            ClientSize = new System.Drawing.Size(listBox.Width + 5, listBoxHeight);
             listBox.Focus();
-        }
-
-        private void ToolbarFrm_Shown(object? sender, EventArgs e)
-        {
-            // Check if it's the first time the form is shown
-            if (!isFormActivated)
-            {
-                // Calculate and set the form size when it is about to be shown for the first time
-                CalculateFormSize();
-
-                // Update the flag to indicate that the form has been activated
-                isFormActivated = true;
-            }
-        }
-
-        private void ToolbarFrm_MouseEnter(object? sender, EventArgs e)
-        {
-            // Check if the form has been activated, if not, show the preview
-            if (!isFormActivated)
-            {
-                // Calculate and set the form size when the mouse enters for the first time
-                CalculateFormSize();
-
-                // Update the flag to indicate that the form has been activated
-                isFormActivated = true;
-            }
         }
 
         private void ToolbarApp_Click(object? sender, EventArgs e)
         {
-            this.Show();
-            this.WindowState = FormWindowState.Normal;
-            this.BringToFront();
-            this.Activate();
-
+            LoadList();
             // Calculate and set the form size based on ListBox items
             CalculateFormSize();
         }
 
+        // execute the sslected shortcut
         private void ListBox_Click(object? sender, EventArgs e)
         {
             ListBox listBox = (ListBox)sender!;
@@ -162,12 +154,12 @@ namespace Toolbar
                     }
                     finally
                     {
-                        this.WindowState = FormWindowState.Minimized;
+                        WindowState = FormWindowState.Minimized;
                     }
                 }
             }
         }
-
+        // highlight shortcut as mouse passes over it
         private void ListBox_MouseMove(object? sender, MouseEventArgs e)
         {
             // Get the index of the item at the current mouse position
@@ -179,6 +171,6 @@ namespace Toolbar
                 listBox.SelectedIndex = index;
             }
         }
-
     }
+    #endregion
 }

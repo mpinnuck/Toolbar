@@ -36,14 +36,14 @@
             listBox.FormattingEnabled = true;
             listBox.Location = new Point(3, 1);
             listBox.Name = "listBox";
-            listBox.Size = new Size(162, 100);
+            listBox.Size = new Size(167, 68);
             listBox.TabIndex = 0;
             // 
             // ToolbarFrm
             // 
             AutoScaleDimensions = new SizeF(13F, 32F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(232, 276);
+            ClientSize = new Size(232, 73);
             Controls.Add(listBox);
             Name = "ToolbarFrm";
             Text = "Toolbar";

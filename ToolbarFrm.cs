@@ -1,9 +1,11 @@
+using System.Runtime.InteropServices;
+
 namespace Toolbar
 {
     public partial class ToolbarFrm : Form
     {
         #region Constants
-        static readonly Color BackGroundColor = Color.FromArgb(226, 239, 254);
+        static readonly Color BackGroundColor = Color.FromArgb(250, 250, 250);
         const int DelayForSmoothPreview = 50; // Milliseconds
         #endregion
 
@@ -22,7 +24,9 @@ namespace Toolbar
             shortcutFolderPath = shortcutPath;
             Text = Path.GetFileNameWithoutExtension(shortcutFolderPath);
             FormBorderStyle = FormBorderStyle.None;
-            BackColor = BackGroundColor;
+            // this stops the background erase flicker when the listbox pops up
+            BackColor = Color.Beige;
+            TransparencyKey = Color.Beige;
 
             Activated += ToolbarApp_Click;
 
@@ -94,7 +98,7 @@ namespace Toolbar
             WindowState = FormWindowState.Minimized;
         }
 
-        // Method to calculate and set the form size based on ListBox items
+         // Method to calculate and set the form size based on ListBox items
         private void CalculateFormSize()
         {
             int listBoxHeight = listBox.ItemHeight * (listBox.Items.Count + 1);
